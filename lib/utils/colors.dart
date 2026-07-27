@@ -13,6 +13,10 @@ class AppColors {
   static const Color surface = Color(0xFFFFFFFF);      // Pure White Card Surface
   static const Color surfaceVariant = Color(0xFFF1F5F9); // Light Grey Container
 
+  // Dark Theme Surfaces & Backgrounds
+  static const Color darkBackground = Color(0xFF0F172A); // Deep Slate Background
+  static const Color darkSurface = Color(0xFF1E293B);    // Slate Card Surface
+
   // Text Colors
   static const Color textPrimary = Color(0xFF0F172A);  // Deep Slate (High contrast)
   static const Color textSecondary = Color(0xFF64748B);// Medium Slate

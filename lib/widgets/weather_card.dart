@@ -3,7 +3,7 @@ import '../utils/colors.dart';
 import '../utils/theme.dart';
 
 /// Professional & Modern Weather Card component with dynamic weather gradients,
-/// soft ambient shadows, and smooth layout animations.
+/// temperature unit toggle control (°C / °F), and smooth layout animations.
 class WeatherCard extends StatelessWidget {
   final String cityName;
   final String country;
@@ -11,6 +11,8 @@ class WeatherCard extends StatelessWidget {
   final String condition;
   final String date;
   final IconData icon;
+  final bool isCelsius;
+  final VoidCallback? onUnitToggle;
 
   const WeatherCard({
     super.key,
@@ -20,11 +22,12 @@ class WeatherCard extends StatelessWidget {
     required this.condition,
     required this.date,
     this.icon = Icons.wb_sunny_rounded,
+    this.isCelsius = true,
+    this.onUnitToggle,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Select gradient colors based on weather condition
     final gradientColors = _getConditionGradient(condition);
 
     return LayoutBuilder(
@@ -64,7 +67,7 @@ class WeatherCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header Row: Location, Date & Dynamic Weather Badge
+              // Header Row: Location, Date & Weather Icon Badge
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,7 +111,7 @@ class WeatherCard extends StatelessWidget {
                     ),
                   ),
 
-                  // Weather Condition Icon Badge with Glassmorphism
+                  // Weather Icon Badge
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 400),
                     child: Container(
@@ -134,7 +137,7 @@ class WeatherCard extends StatelessWidget {
 
               SizedBox(height: isWideCard ? AppSpacing.xl : AppSpacing.lg),
 
-              // Temperature Display & Condition Pill Badge
+              // Temperature Row + Unit Toggle Pill & Condition Tag
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -157,29 +160,81 @@ class WeatherCard extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.sm),
 
-                  // Glassmorphic Condition Tag
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isWideCard ? AppSpacing.lg : AppSpacing.md,
-                      vertical: AppSpacing.sm,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.35),
-                        width: 1,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Celsius / Fahrenheit Unit Switcher Button
+                      if (onUnitToggle != null) ...[
+                        GestureDetector(
+                          onTap: onUnitToggle,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.4),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '°C',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: isCelsius ? FontWeight.w800 : FontWeight.normal,
+                                    color: isCelsius ? Colors.white : Colors.white60,
+                                  ),
+                                ),
+                                const Text(
+                                  ' | ',
+                                  style: TextStyle(color: Colors.white60, fontSize: 13),
+                                ),
+                                Text(
+                                  '°F',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: !isCelsius ? FontWeight.w800 : FontWeight.normal,
+                                    color: !isCelsius ? Colors.white : Colors.white60,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+
+                      // Glassmorphic Condition Tag
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isWideCard ? AppSpacing.lg : AppSpacing.md,
+                          vertical: AppSpacing.sm,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          condition,
+                          style: TextStyle(
+                            fontSize: isWideCard ? 16 : 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      condition,
-                      style: TextStyle(
-                        fontSize: isWideCard ? 16 : 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -190,7 +245,6 @@ class WeatherCard extends StatelessWidget {
     );
   }
 
-  /// Generates dynamic weather gradient based on weather condition string
   List<Color> _getConditionGradient(String condition) {
     final lower = condition.toLowerCase();
     if (lower.contains('sun') || lower.contains('clear')) {

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../utils/colors.dart';
 import '../utils/theme.dart';
 
 /// Reusable tile component to display an individual weather detail metric.
-/// (e.g. Humidity, Wind Speed, Pressure, Feels Like).
+/// Adapts dynamically to light and dark themes.
 class WeatherDetailTile extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
@@ -20,13 +19,15 @@ class WeatherDetailTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           padding: const EdgeInsets.all(AppSpacing.sm),
           decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.1),
+            color: iconColor.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -38,18 +39,15 @@ class WeatherDetailTile extends StatelessWidget {
         const SizedBox(height: AppSpacing.xs),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 16,
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
+          style: theme.textTheme.bodyMedium?.copyWith(
             fontSize: 12,
-            color: AppColors.textSecondary,
           ),
         ),
       ],

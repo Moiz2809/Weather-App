@@ -20,6 +20,7 @@ class AppConstants {
   static const String keyLastCity = 'last_searched_city';
   static const String keyRecentCities = 'recent_cities';
   static const String keyTemperatureUnit = 'is_celsius';
+  static const String keyThemeMode = 'is_dark_mode';
 
   // Design & Spacing Constants
   static const double defaultPadding = 16.0;

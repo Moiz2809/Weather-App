@@ -3,6 +3,7 @@ import '../utils/colors.dart';
 import '../utils/theme.dart';
 
 /// Reusable Search TextField component with clear button and submit action.
+/// Uses Theme color scheme for automatic Light/Dark mode compatibility.
 class SearchTextField extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
@@ -25,17 +26,22 @@ class SearchTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
             boxShadow: [
               BoxShadow(
-                color: AppColors.textPrimary.withValues(alpha: 0.05),
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.2)
+                    : AppColors.textPrimary.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -46,9 +52,15 @@ class SearchTextField extends StatelessWidget {
             textInputAction: TextInputAction.search,
             onSubmitted: onSubmitted,
             onChanged: onChanged,
+            style: TextStyle(
+              color: theme.textTheme.bodyLarge?.color,
+            ),
             decoration: InputDecoration(
               hintText: hintText,
-              prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
+              prefixIcon: Icon(
+                Icons.search_rounded,
+                color: isDark ? AppColors.accent : AppColors.primary,
+              ),
               suffixIcon: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -57,7 +69,7 @@ class SearchTextField extends StatelessWidget {
                     builder: (context, value, child) {
                       if (value.text.isEmpty) return const SizedBox.shrink();
                       return IconButton(
-                        icon: const Icon(Icons.clear_rounded, color: AppColors.textMuted),
+                        icon: const Icon(Icons.clear_rounded),
                         onPressed: () {
                           controller.clear();
                           if (onClear != null) onClear!();
@@ -67,7 +79,10 @@ class SearchTextField extends StatelessWidget {
                   ),
                   if (onSearchPressed != null)
                     IconButton(
-                      icon: const Icon(Icons.arrow_forward_rounded, color: AppColors.primary),
+                      icon: Icon(
+                        Icons.arrow_forward_rounded,
+                        color: isDark ? AppColors.accent : AppColors.primary,
+                      ),
                       tooltip: 'Search City',
                       onPressed: onSearchPressed,
                     ),

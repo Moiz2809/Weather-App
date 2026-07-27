@@ -4,7 +4,7 @@ import '../utils/theme.dart';
 import 'weather_detail_tile.dart';
 
 /// Professional Extra Info Card displaying Humidity, Wind Speed, and Feels Like metrics.
-/// Features rounded corners, soft ambient shadows, and clean divider spacing.
+/// Features rounded corners, soft ambient shadows, and dynamic Light/Dark mode adaptability.
 class ExtraInfoCard extends StatelessWidget {
   final String humidity;
   final String windSpeed;
@@ -19,6 +19,9 @@ class ExtraInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 500;
@@ -31,23 +34,22 @@ class ExtraInfoCard extends StatelessWidget {
             vertical: AppSpacing.lg,
           ),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
             boxShadow: [
               BoxShadow(
-                color: AppColors.textPrimary.withValues(alpha: 0.04),
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.25)
+                    : AppColors.textPrimary.withValues(alpha: 0.04),
                 blurRadius: 16,
                 spreadRadius: 0,
                 offset: const Offset(0, 6),
               ),
-              BoxShadow(
-                color: AppColors.textPrimary.withValues(alpha: 0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
             ],
             border: Border.all(
-              color: AppColors.border.withValues(alpha: 0.6),
+              color: isDark
+                  ? const Color(0xFF334155)
+                  : AppColors.border.withValues(alpha: 0.6),
               width: 1,
             ),
           ),
@@ -62,7 +64,7 @@ class ExtraInfoCard extends StatelessWidget {
                   value: humidity,
                 ),
               ),
-              _buildVerticalDivider(),
+              _buildVerticalDivider(isDark),
               Expanded(
                 child: WeatherDetailTile(
                   icon: Icons.air_rounded,
@@ -71,7 +73,7 @@ class ExtraInfoCard extends StatelessWidget {
                   value: windSpeed,
                 ),
               ),
-              _buildVerticalDivider(),
+              _buildVerticalDivider(isDark),
               Expanded(
                 child: WeatherDetailTile(
                   icon: Icons.thermostat_rounded,
@@ -87,12 +89,12 @@ class ExtraInfoCard extends StatelessWidget {
     );
   }
 
-  Widget _buildVerticalDivider() {
+  Widget _buildVerticalDivider(bool isDark) {
     return Container(
       height: 44,
       width: 1,
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-      color: AppColors.border.withValues(alpha: 0.6),
+      color: isDark ? const Color(0xFF334155) : AppColors.border.withValues(alpha: 0.6),
     );
   }
 }

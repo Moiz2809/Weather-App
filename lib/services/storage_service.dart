@@ -5,20 +5,48 @@ import '../utils/constants.dart';
 class StorageService {
   /// Saves the last successfully searched city name to persistent storage.
   Future<void> saveLastCity(String city) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(AppConstants.keyLastCity, city.trim());
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(AppConstants.keyLastCity, city.trim());
+    } catch (_) {
+      // Gracefully handle storage errors
+    }
   }
 
   /// Retrieves the last searched city name from persistent storage.
-  /// Returns null if no city has been saved yet.
   Future<String?> getLastCity() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(AppConstants.keyLastCity);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(AppConstants.keyLastCity);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Clears the saved last city from persistent storage.
   Future<void> clearLastCity() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(AppConstants.keyLastCity);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(AppConstants.keyLastCity);
+    } catch (_) {}
+  }
+
+  /// Saves the user's theme mode preference (true for dark, false for light).
+  Future<void> saveThemeMode(bool isDarkMode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(AppConstants.keyThemeMode, isDarkMode);
+    } catch (_) {}
+  }
+
+  /// Retrieves the user's saved theme mode preference.
+  /// Returns false (Light Mode) by default if no preference is saved.
+  Future<bool> getThemeMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(AppConstants.keyThemeMode) ?? false;
+    } catch (_) {
+      return false;
+    }
   }
 }

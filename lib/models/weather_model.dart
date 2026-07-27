@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'hourly_forecast_model.dart';
 
-/// Data Model representing current weather information for a city.
-/// Provides JSON serialization, deserialization, and UI getters.
+/// Data Model representing current weather information and 24-hour hourly forecast.
 class WeatherModel {
   /// Name of the searched city/location (e.g. "London")
   final String cityName;
 
-  /// Current temperature value in numerical degrees (e.g. 24.5)
+  /// Current temperature value in Celsius (e.g. 24.5)
   final double temperature;
 
   /// Main weather condition description (e.g. "Sunny", "Clear", "Rainy")
@@ -18,11 +18,14 @@ class WeatherModel {
   /// Wind speed measurement value (e.g. 12.5 km/h)
   final double windSpeed;
 
-  /// Perceived temperature ("Feels Like") value in numerical degrees (e.g. 26.0)
+  /// Perceived temperature ("Feels Like") value in Celsius (e.g. 26.0)
   final double feelsLike;
 
   /// Icon code or icon identifier representing the weather condition (e.g. "01d")
   final String weatherIcon;
+
+  /// List of 24-hour hourly temperature forecast data points
+  final List<HourlyForecastPoint> hourlyForecast;
 
   const WeatherModel({
     required this.cityName,
@@ -32,13 +35,29 @@ class WeatherModel {
     required this.windSpeed,
     required this.feelsLike,
     required this.weatherIcon,
+    required this.hourlyForecast,
   });
 
   /// Factory constructor to parse WeatherModel from a JSON map safely.
   factory WeatherModel.fromJson(Map<String, dynamic> json) {
+    final double temp = (json['main'] != null ? json['main']['temp'] : json['temperature'])?.toDouble() ?? 0.0;
+
+    // Parse hourly forecast list if present in JSON
+    List<HourlyForecastPoint> hourly = [];
+    if (json['hourlyForecast'] != null && json['hourlyForecast'] is List) {
+      hourly = (json['hourlyForecast'] as List)
+          .map((item) => HourlyForecastPoint.fromJson(item as Map<String, dynamic>))
+          .toList();
+    }
+
+    // Fallback: Generate realistic 24-hour forecast data points if API response didn't include them
+    if (hourly.isEmpty) {
+      hourly = _generateSampleHourlyData(temp);
+    }
+
     return WeatherModel(
       cityName: json['name'] as String? ?? json['cityName'] as String? ?? 'Unknown Location',
-      temperature: (json['main'] != null ? json['main']['temp'] : json['temperature'])?.toDouble() ?? 0.0,
+      temperature: temp,
       condition: (json['weather'] != null && (json['weather'] as List).isNotEmpty)
           ? json['weather'][0]['main'] as String
           : json['condition'] as String? ?? 'Clear',
@@ -48,6 +67,7 @@ class WeatherModel {
       weatherIcon: (json['weather'] != null && (json['weather'] as List).isNotEmpty)
           ? json['weather'][0]['icon'] as String
           : json['weatherIcon'] as String? ?? '01d',
+      hourlyForecast: hourly,
     );
   }
 
@@ -61,17 +81,36 @@ class WeatherModel {
       'windSpeed': windSpeed,
       'feelsLike': feelsLike,
       'weatherIcon': weatherIcon,
+      'hourlyForecast': hourlyForecast.map((e) => e.toJson()).toList(),
     };
   }
 
-  // --- Formatted Getters ---
+  // --- Formatted Getters with Unit Conversion ---
 
-  String get formattedTemperature => '${temperature.round()}°C';
-  String get formattedFeelsLike => '${feelsLike.round()}°C';
+  String getFormattedTemperature(bool isCelsius) {
+    if (isCelsius) {
+      return '${temperature.round()}°C';
+    } else {
+      final fahrenheit = (temperature * 9 / 5) + 32;
+      return '${fahrenheit.round()}°F';
+    }
+  }
+
+  String getFormattedFeelsLike(bool isCelsius) {
+    if (isCelsius) {
+      return '${feelsLike.round()}°C';
+    } else {
+      final fahrenheit = (feelsLike * 9 / 5) + 32;
+      return '${fahrenheit.round()}°F';
+    }
+  }
+
+  String get formattedTemperature => getFormattedTemperature(true);
+  String get formattedFeelsLike => getFormattedFeelsLike(true);
+
   String get formattedHumidity => '$humidity%';
   String get formattedWindSpeed => '${windSpeed.toStringAsFixed(1)} km/h';
 
-  /// Dynamically maps weather condition text to Material 3 Icon Data
   IconData get conditionIcon {
     final lower = condition.toLowerCase();
     if (lower.contains('sun') || lower.contains('clear')) {
@@ -86,5 +125,35 @@ class WeatherModel {
       return Icons.thunderstorm_rounded;
     }
     return Icons.wb_cloudy_rounded;
+  }
+
+  /// Generates a realistic 24-hour temperature curve around base temperature.
+  static List<HourlyForecastPoint> _generateSampleHourlyData(double baseTemp) {
+    final List<HourlyForecastPoint> points = [];
+    final now = DateTime.now();
+
+    for (int i = 0; i < 8; i++) {
+      final hourTime = now.add(Duration(hours: i * 3));
+      final String timeStr = '${hourTime.hour.toString().padLeft(2, '0')}:00';
+
+      double variation = 0;
+      if (i == 1 || i == 2) {
+        variation = 2.0;
+      } else if (i == 3 || i == 4) {
+        variation = 0.5;
+      } else if (i == 5 || i == 6) {
+        variation = -2.5;
+      } else {
+        variation = -1.0;
+      }
+
+      points.add(
+        HourlyForecastPoint(
+          time: timeStr,
+          temperature: baseTemp + variation,
+        ),
+      );
+    }
+    return points;
   }
 }
