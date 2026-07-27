@@ -119,10 +119,9 @@ class WeatherService {
         final List times = weatherData['hourly']['time'];
         final List temps = weatherData['hourly']['temperature_2m'];
 
-        // Extract 8 intervals (every 3 hours) for the next 24 hours
         final int limit = times.length > 24 ? 24 : times.length;
         for (int i = 0; i < limit; i += 3) {
-          final String rawTime = times[i].toString(); // e.g. "2026-07-27T14:00"
+          final String rawTime = times[i].toString();
           final String hourStr = rawTime.contains('T')
               ? rawTime.split('T')[1].substring(0, 5)
               : '00:00';
@@ -144,6 +143,8 @@ class WeatherService {
         windSpeed: (current['wind_speed_10m'] as num).toDouble(),
         feelsLike: (current['apparent_temperature'] as num).toDouble(),
         weatherIcon: '01d',
+        latitude: lat,
+        longitude: lon,
         hourlyForecast: hourlyPoints,
       );
     } catch (e) {

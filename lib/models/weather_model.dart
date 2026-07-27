@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'hourly_forecast_model.dart';
+import 'weather_alert_model.dart';
 
-/// Data Model representing current weather information and 24-hour hourly forecast.
+/// Data Model representing current weather information, location coordinates, 24-hour forecast, and weather alerts.
 class WeatherModel {
   /// Name of the searched city/location (e.g. "London")
   final String cityName;
@@ -24,8 +25,17 @@ class WeatherModel {
   /// Icon code or icon identifier representing the weather condition (e.g. "01d")
   final String weatherIcon;
 
+  /// Latitude coordinate of the location
+  final double latitude;
+
+  /// Longitude coordinate of the location
+  final double longitude;
+
   /// List of 24-hour hourly temperature forecast data points
   final List<HourlyForecastPoint> hourlyForecast;
+
+  /// List of active severe weather alerts (empty if no alerts)
+  final List<WeatherAlertModel> alerts;
 
   const WeatherModel({
     required this.cityName,
@@ -35,12 +45,26 @@ class WeatherModel {
     required this.windSpeed,
     required this.feelsLike,
     required this.weatherIcon,
+    required this.latitude,
+    required this.longitude,
     required this.hourlyForecast,
+    this.alerts = const [],
   });
 
   /// Factory constructor to parse WeatherModel from a JSON map safely.
   factory WeatherModel.fromJson(Map<String, dynamic> json) {
     final double temp = (json['main'] != null ? json['main']['temp'] : json['temperature'])?.toDouble() ?? 0.0;
+
+    // Parse latitude and longitude
+    double lat = 51.5074;
+    double lon = -0.1278;
+    if (json['coord'] != null) {
+      lat = (json['coord']['lat'] as num?)?.toDouble() ?? 51.5074;
+      lon = (json['coord']['lon'] as num?)?.toDouble() ?? -0.1278;
+    } else {
+      lat = (json['latitude'] as num?)?.toDouble() ?? 51.5074;
+      lon = (json['longitude'] as num?)?.toDouble() ?? -0.1278;
+    }
 
     // Parse hourly forecast list if present in JSON
     List<HourlyForecastPoint> hourly = [];
@@ -50,9 +74,16 @@ class WeatherModel {
           .toList();
     }
 
-    // Fallback: Generate realistic 24-hour forecast data points if API response didn't include them
     if (hourly.isEmpty) {
       hourly = _generateSampleHourlyData(temp);
+    }
+
+    // Parse severe weather alerts if present in JSON
+    List<WeatherAlertModel> alertList = [];
+    if (json['alerts'] != null && json['alerts'] is List) {
+      alertList = (json['alerts'] as List)
+          .map((item) => WeatherAlertModel.fromJson(item as Map<String, dynamic>))
+          .toList();
     }
 
     return WeatherModel(
@@ -67,7 +98,10 @@ class WeatherModel {
       weatherIcon: (json['weather'] != null && (json['weather'] as List).isNotEmpty)
           ? json['weather'][0]['icon'] as String
           : json['weatherIcon'] as String? ?? '01d',
+      latitude: lat,
+      longitude: lon,
       hourlyForecast: hourly,
+      alerts: alertList,
     );
   }
 
@@ -81,7 +115,10 @@ class WeatherModel {
       'windSpeed': windSpeed,
       'feelsLike': feelsLike,
       'weatherIcon': weatherIcon,
+      'latitude': latitude,
+      'longitude': longitude,
       'hourlyForecast': hourlyForecast.map((e) => e.toJson()).toList(),
+      'alerts': alerts.map((e) => e.toJson()).toList(),
     };
   }
 

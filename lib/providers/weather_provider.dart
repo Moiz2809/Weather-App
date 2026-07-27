@@ -1,23 +1,28 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import '../core/app_exception.dart';
+import '../models/aqi_model.dart';
 import '../models/weather_model.dart';
+import '../services/aqi_service.dart';
 import '../services/location_service.dart';
 import '../services/storage_service.dart';
 import '../services/weather_service.dart';
 import '../utils/constants.dart';
 import '../utils/validator.dart';
 
-/// WeatherProvider manages application state for weather data, loading status,
+/// WeatherProvider manages application state for weather data, AQI data, loading status,
 /// error messages, temperature units, GPS location, and persistent search history.
 class WeatherProvider extends ChangeNotifier {
   final WeatherService _weatherService;
   final StorageService _storageService;
   final LocationService _locationService;
+  final AqiService _aqiService;
 
   // --- Private State Variables ---
   WeatherModel? _weather;
+  AqiModel? _aqi;
   bool _isLoading = false;
+  bool _isAqiLoading = false;
   String? _errorMessage;
   String _currentCity = AppConstants.defaultCity;
   bool _isCelsius = true;
@@ -27,13 +32,17 @@ class WeatherProvider extends ChangeNotifier {
     WeatherService? weatherService,
     StorageService? storageService,
     LocationService? locationService,
+    AqiService? aqiService,
   })  : _weatherService = weatherService ?? WeatherService(),
         _storageService = storageService ?? StorageService(),
-        _locationService = locationService ?? LocationService();
+        _locationService = locationService ?? LocationService(),
+        _aqiService = aqiService ?? AqiService();
 
   // --- Public Getters ---
   WeatherModel? get weather => _weather;
+  AqiModel? get aqi => _aqi;
   bool get isLoading => _isLoading;
+  bool get isAqiLoading => _isAqiLoading;
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
   bool get hasData => _weather != null && !_isLoading;
@@ -47,18 +56,14 @@ class WeatherProvider extends ChangeNotifier {
   }
 
   // --- GPS Location Action ---
-
-  /// Requests location permissions, retrieves current GPS coordinates, and fetches weather.
   Future<void> fetchWeatherForCurrentLocation() async {
     _isLoading = true;
     _errorMessage = null;
+    _aqi = null;
     notifyListeners();
 
     try {
-      // 1. Get current latitude and longitude from LocationService
       final Position position = await _locationService.getCurrentLocation();
-
-      // 2. Fetch weather using GPS coordinates
       final WeatherModel result = await _weatherService.getWeatherByCoordinates(
         position.latitude,
         position.longitude,
@@ -68,8 +73,10 @@ class WeatherProvider extends ChangeNotifier {
       _currentCity = result.cityName;
       _errorMessage = null;
 
-      // 3. Persist city name to local storage
       await _storageService.saveLastCity(result.cityName);
+
+      // Fetch Air Quality Index (AQI) using coordinates
+      await _fetchAqi(result.latitude, result.longitude);
     } on AppException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
@@ -105,6 +112,7 @@ class WeatherProvider extends ChangeNotifier {
 
     _isLoading = true;
     _errorMessage = null;
+    _aqi = null;
     notifyListeners();
 
     try {
@@ -114,6 +122,9 @@ class WeatherProvider extends ChangeNotifier {
       _errorMessage = null;
 
       await _storageService.saveLastCity(result.cityName);
+
+      // Fetch Air Quality Index (AQI) using location coordinates
+      await _fetchAqi(result.latitude, result.longitude);
     } on AppException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
@@ -121,6 +132,18 @@ class WeatherProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Private helper method to load AQI for specified latitude and longitude
+  Future<void> _fetchAqi(double lat, double lon) async {
+    _isAqiLoading = true;
+    try {
+      _aqi = await _aqiService.getAqi(lat, lon);
+    } catch (_) {
+      _aqi = null;
+    } finally {
+      _isAqiLoading = false;
     }
   }
 

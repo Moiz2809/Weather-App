@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'providers/favorites_provider.dart';
+import 'providers/history_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/weather_provider.dart';
 import 'screens/splash_screen.dart';
@@ -9,12 +11,18 @@ import 'utils/theme.dart';
 
 void main() {
   runApp(
-    // Wrap app with MultiProvider to register WeatherProvider and ThemeProvider
+    // Wrap app with MultiProvider to register WeatherProvider, ThemeProvider, FavoritesProvider, and HistoryProvider
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => WeatherProvider()),
         ChangeNotifierProvider(
           create: (_) => ThemeProvider()..loadThemePreference(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => FavoritesProvider()..loadFavorites(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => HistoryProvider()..loadHistory(),
         ),
       ],
       child: const WeatherApp(),
@@ -28,7 +36,6 @@ class WeatherApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Listen to ThemeProvider to dynamically react to theme mode changes
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(

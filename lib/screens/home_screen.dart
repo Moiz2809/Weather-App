@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/favorites_provider.dart';
+import '../providers/history_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/weather_provider.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
 import '../utils/responsive.dart';
 import '../utils/theme.dart';
+import '../widgets/alert_card.dart';
+import '../widgets/aqi_card.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/error_widget.dart';
 import '../widgets/extra_info_card.dart';
+import '../widgets/history_chips_widget.dart';
 import '../widgets/hourly_chart_widget.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/weather_card.dart';
+import 'favorites_screen.dart';
 
-/// Connected & Fully Responsive Home Screen with 24-Hour Hourly Temperature Chart.
+/// Connected & Fully Responsive Home Screen with Search History Chips, Favorites, and Weather Controls.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -34,6 +40,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onSearch(String query) {
     FocusScope.of(context).unfocus();
+    // Add valid query to recent search history
+    context.read<HistoryProvider>().addSearch(query);
+    // Fetch live weather
     context.read<WeatherProvider>().fetchWeather(query);
   }
 
@@ -54,7 +63,21 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
-          // 1. Current GPS Location Action Button
+          // 1. Favorite Cities Screen Action
+          IconButton(
+            icon: const Icon(Icons.favorite_rounded, color: Color(0xFFFF4757)),
+            tooltip: 'View Favorite Cities',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FavoritesScreen(),
+                ),
+              );
+            },
+          ),
+
+          // 2. Current GPS Location Action Button
           Consumer<WeatherProvider>(
             builder: (context, provider, child) {
               return IconButton(
@@ -65,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
 
-          // 2. Dark Mode Toggle Switch Button
+          // 3. Dark Mode Toggle Switch Button
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, child) {
               return IconButton(
@@ -84,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
 
-          // 3. Weather Refresh Button
+          // 4. Weather Refresh Button
           Consumer<WeatherProvider>(
             builder: (context, provider, child) {
               return IconButton(
@@ -113,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Column(
                     children: [
-                      // Search Bar & "Use Current Location" Button Row
+                      // Search Bar & Current Location Button Row
                       Consumer<WeatherProvider>(
                         builder: (context, provider, child) {
                           return Row(
@@ -149,7 +172,31 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.xs),
+
+                      // Recent Search History Chips Widget
+                      Consumer<HistoryProvider>(
+                        builder: (context, historyProvider, child) {
+                          return HistoryChipsWidget(
+                            history: historyProvider.history,
+                            onSelectCity: (city) {
+                              FocusScope.of(context).unfocus();
+                              context.read<WeatherProvider>().fetchWeather(city);
+                            },
+                            onClearHistory: () {
+                              historyProvider.clearHistory();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Cleared recent search history.'),
+                                  duration: Duration(seconds: 2),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
 
                       // Animated Weather Body Switcher
                       Expanded(
@@ -175,7 +222,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Selects and builds body widget based on WeatherProvider state
   Widget _buildBodyContent(WeatherProvider provider) {
     if (provider.isLoading) {
       return LoadingWidget(
@@ -206,27 +252,53 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 1. Weather Hero Card
-              WeatherCard(
-                cityName: weather.cityName,
-                country: 'Weather Report',
-                temperature: weather.getFormattedTemperature(isCelsius),
-                condition: weather.condition,
-                date: 'Today',
-                icon: weather.conditionIcon,
-                isCelsius: isCelsius,
-                onUnitToggle: () => provider.toggleTemperatureUnit(),
+              AlertCard(alerts: weather.alerts),
+
+              Consumer<FavoritesProvider>(
+                builder: (context, favoritesProvider, child) {
+                  final isFav = favoritesProvider.isFavorite(weather.cityName);
+
+                  return WeatherCard(
+                    cityName: weather.cityName,
+                    country: 'Weather Report',
+                    temperature: weather.getFormattedTemperature(isCelsius),
+                    condition: weather.condition,
+                    date: 'Today',
+                    icon: weather.conditionIcon,
+                    isCelsius: isCelsius,
+                    onUnitToggle: () => provider.toggleTemperatureUnit(),
+                    isFavorite: isFav,
+                    onFavoriteToggle: () {
+                      favoritesProvider.toggleFavorite(weather.cityName);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isFav
+                                ? 'Removed "${weather.cityName}" from favorites.'
+                                : 'Saved "${weather.cityName}" to favorites!',
+                          ),
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
               const SizedBox(height: AppSpacing.lg),
 
-              // 2. Smooth 24-Hour Temperature Line Chart Widget
+              AqiCard(
+                aqi: provider.aqi,
+                isLoading: provider.isAqiLoading,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+
               HourlyChartWidget(
                 points: weather.hourlyForecast,
                 isCelsius: isCelsius,
               ),
               const SizedBox(height: AppSpacing.lg),
 
-              // 3. Extra Weather Metrics Card
               ExtraInfoCard(
                 humidity: weather.formattedHumidity,
                 windSpeed: weather.formattedWindSpeed,

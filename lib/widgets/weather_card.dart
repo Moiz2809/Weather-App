@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../utils/colors.dart';
 import '../utils/theme.dart';
+import 'animated_weather_icon.dart';
 
 /// Professional & Modern Weather Card component with dynamic weather gradients,
-/// temperature unit toggle control (°C / °F), and smooth layout animations.
+/// vector-animated weather condition icons, favorite heart toggle, and unit switcher.
 class WeatherCard extends StatelessWidget {
   final String cityName;
   final String country;
@@ -13,6 +14,8 @@ class WeatherCard extends StatelessWidget {
   final IconData icon;
   final bool isCelsius;
   final VoidCallback? onUnitToggle;
+  final bool isFavorite;
+  final VoidCallback? onFavoriteToggle;
 
   const WeatherCard({
     super.key,
@@ -24,6 +27,8 @@ class WeatherCard extends StatelessWidget {
     this.icon = Icons.wb_sunny_rounded,
     this.isCelsius = true,
     this.onUnitToggle,
+    this.isFavorite = false,
+    this.onFavoriteToggle,
   });
 
   @override
@@ -35,7 +40,7 @@ class WeatherCard extends StatelessWidget {
         final isWideCard = constraints.maxWidth > 500;
         final cardPadding = isWideCard ? AppSpacing.xl : AppSpacing.lg;
         final tempFontSize = isWideCard ? 72.0 : 64.0;
-        final iconSize = isWideCard ? 52.0 : 42.0;
+        final iconSize = isWideCard ? 48.0 : 40.0;
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 500),
@@ -67,7 +72,7 @@ class WeatherCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header Row: Location, Date & Weather Icon Badge
+              // Header Row: Location, Date & Dynamic Animated Weather Icon
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,6 +101,26 @@ class WeatherCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            if (onFavoriteToggle != null) ...[
+                              const SizedBox(width: AppSpacing.xs),
+                              IconButton(
+                                constraints: const BoxConstraints(),
+                                padding: EdgeInsets.zero,
+                                icon: Icon(
+                                  isFavorite
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: isFavorite
+                                      ? const Color(0xFFFF4757)
+                                      : Colors.white70,
+                                  size: 22,
+                                ),
+                                tooltip: isFavorite
+                                    ? 'Remove from Favorites'
+                                    : 'Add to Favorites',
+                                onPressed: onFavoriteToggle,
+                              ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -111,12 +136,12 @@ class WeatherCard extends StatelessWidget {
                     ),
                   ),
 
-                  // Weather Icon Badge
+                  // Reusable Animated Weather Icon Badge
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 400),
                     child: Container(
-                      key: ValueKey(icon),
-                      padding: EdgeInsets.all(isWideCard ? AppSpacing.md : AppSpacing.sm),
+                      key: ValueKey(condition),
+                      padding: EdgeInsets.all(isWideCard ? AppSpacing.sm : 6.0),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
@@ -125,10 +150,9 @@ class WeatherCard extends StatelessWidget {
                           width: 1.5,
                         ),
                       ),
-                      child: Icon(
-                        icon,
+                      child: AnimatedWeatherIcon(
+                        condition: condition,
                         size: iconSize,
-                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -163,7 +187,6 @@ class WeatherCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Celsius / Fahrenheit Unit Switcher Button
                       if (onUnitToggle != null) ...[
                         GestureDetector(
                           onTap: onUnitToggle,
@@ -210,7 +233,6 @@ class WeatherCard extends StatelessWidget {
                         const SizedBox(height: 8),
                       ],
 
-                      // Glassmorphic Condition Tag
                       Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: isWideCard ? AppSpacing.lg : AppSpacing.md,
